@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="../dist/js/createElement.js"></script>
+    <style>
+      html, body, div, span, object, iframe,
+      h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+      abbr, address, cite, code,
+      del, dfn, em, img, ins, kbd, q, samp,
+      small, strong, sub, sup, var,
+      b, i,
+      dl, dt, dd, ol, ul, li,
+      fieldset, form, label, legend,
+      table, caption, tbody, tfoot, thead, tr, th, td,
+      article, aside, canvas, details, figcaption, figure, 
+      footer, header, hgroup, menu, nav, section, summary,
+      time, mark, audio, video {
+        margin:0;
+        padding:0;
+        border:0;
+        outline:0;
+        font-size:100%;
+        vertical-align:baseline;
+        background:transparent;
+        -webkit-user-select: none; /* Chrome, Opera, Safari */
+        -moz-user-select: none; /* Firefox 2+ */
+        -ms-user-select: none; /* IE 10+ */
+        user-select: none; /* Standard syntax */
+      }
+
+      canvas {
+        border: 1px solid #d3d3d3;
+        background-color: #f1f1f1;
+
+      }
+    </style>
+  </head>
+  <body onload="startGame()">
+    <script>
+      var myGamePiece;
+      var myObstacles = [];
+      var myScore;
+      var stage;
+      var upBtn;
+      var downBtn;
+      var bg;
+      var restart;
+      function startGame() {
+        stage = new createElement({
+          canvas: myGameArea.canvas,
+          images: ['arrow.png', 'bird.png', 'sky.jpg','restart.png','ball.png'],
+          callback: function () {
+            bg = stage.createElement('div');
+            bg.css({
+              left: '0px',
+              top: '0px',
+              width: '480px',
+              height: '270px',
+              'background-image': 'sky.jpg',
+              'background-size': '100% 100%',
+              'background-position': '0px 0px',
+              'background-repeat': 'no-repeat'
+            });
+            stage.body.appendChild(bg);
+            upBtn = stage.createElement('div');
+            upBtn.css({
+              left: (180) + 'px',
+              top: (222) + 'px',
+              width: '48px',
+              height: '48px',
+              'background-image': 'arrow.png',
+              'background-size': '100% 100%',
+              'background-position': '0px 0px',
+              'background-repeat': 'no-repeat',
+              'transform': 'rotate(180deg)',
+              'transform-origin': '204px 246px',
+              'z-index': 1
+            });
+            stage.body.appendChild(upBtn);
+            downBtn = stage.createElement('div');
+            downBtn.css({
+              left: (252) + 'px',
+              top: (222) + 'px',
+              width: '48px',
+              height: '48px',
+              'background-image': 'arrow.png',
+              'background-size': '100% 100%',
+              'background-position': '0px 0px',
+              'background-repeat': 'no-repeat',
+              'z-index': 2
+            });
+            stage.body.appendChild(downBtn);
+
+            upBtn.addEventListener('mousedown', moveup);
+            downBtn.addEventListener('mousedown', movedown);
+            upBtn.addEventListener('mouseup', clearmove);
+            downBtn.addEventListener('mouseup', clearmove);
+
+            myGamePiece = new component(30, 30, "ball", 10, 120);
+            myScore = new component("30px", "Consolas", "black", 360, 20, "text");
+            myGameArea.start();
+          }
+        });
+      }
+
+      var myGameArea = {
+        canvas: document.createElement("canvas"),
+        start: function () {
+          this.canvas.width = 480;
+          this.canvas.height = 270;
+          this.context = this.canvas.getContext("2d");
+          document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+          this.frameNo = 0;
+          this.interval = requestAnimationFrame(updateGameArea);
+        },
+        stop: function () {
+          cancelAnimationFrame(this.interval);
+        }
+      }
+
+      function component(width, height, color, x, y, type) {
+        this.type = type;
+        this.width = width;
+        this.height = height;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.x = x;
+        this.y = y;
+        this.element = stage.createElement('div');
+        stage.body.appendChild(this.element);
+        if (type !== 'text') {
+          this.element.css({
+            left: this.x + 'px',
+            top: this.y + 'px',
+            width: this.width + 'px',
+            height: this.height + 'px'
+          });
+          if (color === 'ball') {
+            this.element.css({
+              'background-image': 'bird.png',
+              'background-size': '100% 100%',
+              'background-position': '0px 0px',
+              'background-repeat': 'no-repeat'
+            });
+          } else {
+            this.element.css({
+              'background-color': color
+            });
+          }
+        } else {
+          this.element.css({
+            left: this.x + 'px',
+            top: this.y + 'px',
+            width: '300px',
+            height: '300px',
+            'text-wrap': false,
+            font: '18px bold Arial'
+          });
+        }
+
+        this.update = function () {
+          stage.draw();
+        }
+        this.newPos = function () {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          this.element.css({
+            left: this.x + 'px',
+            top: this.y + 'px',
+          });
+        }
+        this.crashWith = function (otherobj) {
+          var myleft = this.x;
+          var myright = this.x + (this.width);
+          var mytop = this.y;
+          var mybottom = this.y + (this.height);
+          var otherleft = otherobj.x;
+          var otherright = otherobj.x + (otherobj.width);
+          var othertop = otherobj.y;
+          var otherbottom = otherobj.y + (otherobj.height);
+          var crash = true;
+          if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+            crash = false;
+          }
+          return crash;
+        }
+      }
+
+      function updateGameArea() {
+        var x, height, gap, minHeight, maxHeight, minGap, maxGap;
+        for (i = 0; i < myObstacles.length; i += 1) {
+          if (myGamePiece.crashWith(myObstacles[i])) {
+            myGameArea.stop();
+            restart = stage.createElement('div');
+            restart.css({
+              left: '192px',
+              top: '87px',
+              width: '96px',
+              height: '96px',
+              'background-image': 'restart.png',
+              'background-size': '100% 100%',
+              'background-position': '0px 0px',
+              'background-repeat': 'no-repeat'
+            });
+            
+            /* myGamePiece.element.css({
+              'background-image': 'ball.png',
+            }); */
+            
+            stage.body.appendChild(restart);
+            restart.addEventListener('mouseup', function(){
+              window.location.href = window.location.href;
+            });
+            stage.draw();
+            return;
+          }
+        }
+        myGameArea.frameNo += 1;
+        if (myGameArea.frameNo == 1 || everyinterval(150)) {
+          x = 480;// myGameArea.canvas.width;
+          minHeight = 20;
+          maxHeight = 200;
+          height = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+          minGap = 50;
+          maxGap = 200;
+          gap = Math.floor(Math.random() * (maxGap - minGap + 1) + minGap);
+          myObstacles.push(new component(10, height, "#000000", x, 0));
+          myObstacles.push(new component(10, x - height - gap, "#000000", x, height + gap));
+        }
+        for (i = 0; i < myObstacles.length; i += 1) {
+          myObstacles[i].speedX = -1;
+          myObstacles[i].newPos();
+          myObstacles[i].update();
+        }
+        // myScore.text = "SCORE: " + myGameArea.frameNo;
+        myScore.element.innerHTML = " SCORE: " + myGameArea.frameNo;
+        myScore.update();
+        myGamePiece.newPos();
+        myGamePiece.update();
+
+        // delete unwanted 
+        for (var i = 0; i < stage.body.children.length; i += 1) {
+          if (parseInt(stage.body.children[i].style.left) + parseInt(stage.body.children[i].style.width) < 0) {
+            stage.body.children.splice(i, 1);
+          }
+        }
+        for (var i = 0; i < myObstacles.length; i += 1) {
+          if (parseInt(myObstacles.x) + parseInt(myObstacles.width) < 0) {
+            myObstacles.splice(i, 1);
+          }
+        }
+        requestAnimationFrame(updateGameArea);
+      }
+
+      function everyinterval(n) {
+        if ((myGameArea.frameNo / n) % 1 == 0) {
+          return true;
+        }
+        return false;
+      }
+
+      function moveup() {
+        myGamePiece.speedY = -1;
+      }
+
+      function movedown() {
+        myGamePiece.speedY = 1;
+      }
+
+      function moveleft() {
+        myGamePiece.speedX = -1;
+      }
+
+      function moveright() {
+        myGamePiece.speedX = 1;
+      }
+
+      function clearmove() {
+        myGamePiece.speedX = 0;
+        myGamePiece.speedY = 0;
+      }
+    </script>
+  </body>
+</html>
